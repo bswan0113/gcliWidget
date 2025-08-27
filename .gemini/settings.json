@@ -37,33 +37,33 @@
         "C:/Workspace/Downloads"
       ]
     },
-    "github": {
-      "type": "http",
-      "url": "https://api.githubcopilot.com/mcp/",
-      "headers": {
-        "Authorization": "Bearer ${input.github_mcp_pat}"
-      }
-    },
-    "supabase": {
-      "command": "npx",
-      "args": ["-y", "@supabase/mcp-server-supabase@latest", "--read-only", "--project-ref=bliailvipygjxmstndnh"],
-      "env": {
-        "SUPABASE_ACCESS_TOKEN": "sbp_7e6c57159a1c9aec0fe64a0c701c0ddfb1c7cd1e"
-      }
-    }
+    // "github": {
+    //   "type": "http",
+    //   "url": "https://api.githubcopilot.com/mcp/",
+    //   "headers": {
+    //     "Authorization": "Bearer ${input.github_mcp_pat}"
+    //   }
+    // },
+    // "supabase": {
+    //   "command": "npx",
+    //   "args": ["-y", "@supabase/mcp-server-supabase@latest", "--read-only", "--project-ref=bliailvipygjxmstndnh"],
+    //   "env": {
+    //     "SUPABASE_ACCESS_TOKEN": "sbp_7e6c57159a1c9aec0fe64a0c701c0ddfb1c7cd1e"
+    //   }
+    // }
   },
-  "inputs": [
-    {
-      "type": "promptString",
-      "id": "github_mcp_pat",
-      "description": "GitHub Personal Access Token",
-      "password": true
-    },
-    {
-      "type": "promptString",
-      "id": "supabase-access-token",
-      "description": "Supabase personal access token",
-      "password": true
-    }
+  // "inputs": [
+  //   {
+  //     "type": "promptString",
+  //     "id": "github_mcp_pat",
+  //     "description": "GitHub Personal Access Token",
+  //     "password": true
+  //   },
+    // {
+    //   "type": "promptString",
+    //   "id": "supabase-access-token",
+    //   "description": "Supabase personal access token",
+    //   "password": true
+    // }
   ]
 }
