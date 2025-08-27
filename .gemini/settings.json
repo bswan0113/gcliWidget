@@ -1,0 +1,69 @@
+{
+  "mcpServers": {
+    // "fastmcp": {
+    //   "command": "node",
+    //   "args": ["./mcp_server/fastmcp"] // main 실행 파일 경로 (예시)
+    // },
+    // "github_mcp": {
+    //   "command": "node",
+    //   "args": ["./mcp_server/github-mcp-server"] // main 실행 파일 경로 (예시)
+    // },
+    // "jupyter": {
+    //   "command": "node",
+    //   "args": ["./mcp_server/jupyter-notebook-mcp"] // main 실행 파일 경로 (예시)
+    // },
+    // "opik": {
+    //   "command": "node",
+    //   "args": ["./mcp_server/opik"] // main 실행 파일 경로 (예시)
+    // },
+    // "playwright": {
+    //   "command": "npx",
+    //   "args": ["playwright", "test"],
+    //   "cwd": "./mcp_server/playwright" // playwright.config.js가 있는 폴더 기준
+    // },
+    "context7": {
+      "command": "npx",
+      "args": ["-y", "@upstash/context7-mcp@latest"]
+    },
+    "sequential-thinking": {
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-sequential-thinking"]
+    },
+      "filesystem": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@modelcontextprotocol/server-filesystem",
+        "C:/Workspace/Downloads"
+      ]
+    },
+    "github": {
+      "type": "http",
+      "url": "https://api.githubcopilot.com/mcp/",
+      "headers": {
+        "Authorization": "Bearer ${input.github_mcp_pat}"
+      }
+    },
+    "supabase": {
+      "command": "npx",
+      "args": ["-y", "@supabase/mcp-server-supabase@latest", "--read-only", "--project-ref=bliailvipygjxmstndnh"],
+      "env": {
+        "SUPABASE_ACCESS_TOKEN": "sbp_7e6c57159a1c9aec0fe64a0c701c0ddfb1c7cd1e"
+      }
+    }
+  },
+  "inputs": [
+    {
+      "type": "promptString",
+      "id": "github_mcp_pat",
+      "description": "GitHub Personal Access Token",
+      "password": true
+    },
+    {
+      "type": "promptString",
+      "id": "supabase-access-token",
+      "description": "Supabase personal access token",
+      "password": true
+    }
+  ]
+}
