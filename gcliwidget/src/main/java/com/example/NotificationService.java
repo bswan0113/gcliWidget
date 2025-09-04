@@ -61,7 +61,7 @@ public class NotificationService {
     // In NotificationService.java
 
 private void checkAndNotify() {
-    Platform.runLater(() -> {
+    // Platform.runLater(() -> {
         try {
             LocalDateTime now = LocalDateTime.now();
             Map<LocalDate, List<Event>> allEvents = dataManager.getAllEvents();
@@ -89,7 +89,7 @@ private void checkAndNotify() {
             System.err.println("Error during notification check: " + e.getMessage());
             e.printStackTrace();
         }
-    });
+    // });
 }
     
     private Optional<LocalDateTime> getEventDateTime(LocalDate date, Event event) {

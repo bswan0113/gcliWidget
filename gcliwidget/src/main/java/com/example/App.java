@@ -44,7 +44,7 @@ public class App extends Application {
     private final Gson gson = new Gson();
     private CalendarView calendarView;
     private BorderPane contentPane;
-    private VBox terminalPane;
+    private BorderPane terminalPane;
 
     private enum TerminalPosition {LEFT, RIGHT, BOTTOM}
 
@@ -69,7 +69,7 @@ public class App extends Application {
         calendarView = new CalendarView(LocalDate.now());
         contentPane.setCenter(calendarView);
 
-        terminalPane = new VBox(5);
+        terminalPane = new BorderPane();
         terminalPane.setPadding(new Insets(10));
         terminalPane.setStyle("-fx-background-color: rgba(20, 20, 20, 0.7); -fx-background-radius: 8;");
 
@@ -99,8 +99,15 @@ public class App extends Application {
         transparencySlider.valueProperty().addListener((obs, oldVal, newVal) -> stage.setOpacity(newVal.doubleValue()));
 
         HBox layoutControls = createLayoutButtons();
+        
+        VBox topControls = new VBox(5, layoutControls, transparencySlider);
+        topControls.setAlignment(Pos.CENTER_RIGHT);
+        BorderPane.setMargin(topControls, new Insets(0, 0, 5, 0));
+        BorderPane.setMargin(commandInput, new Insets(5, 0, 0, 0));
 
-        terminalPane.getChildren().addAll(layoutControls, terminalOutput, commandInput, transparencySlider);
+        terminalPane.setTop(topControls);
+        terminalPane.setCenter(terminalOutput);
+        terminalPane.setBottom(commandInput);
 
         setTerminalPosition(TerminalPosition.BOTTOM);
 
@@ -117,25 +124,44 @@ public class App extends Application {
         stage.setScene(scene);
         stage.setTitle("gcliwidget - Calendar & Terminal");
         stage.show();
-        // NotificationService.getInstance().start();
+        NotificationService.getInstance().start();
     }
     @Override
     public void stop() throws Exception {
-        // NotificationService.getInstance().stop();
+        NotificationService.getInstance().stop();
         super.stop();
     }
     
     // ... setup/helper 메서드 (createLayoutButtons, setTerminalPosition, setupWindowHandlers, ...) 수정 없음 ...
     private HBox createLayoutButtons() { /* ... no changes ... */
-        Button leftButton = new Button("좌"); Button bottomButton = new Button("하"); Button rightButton = new Button("우");
+        Button leftButton = new Button("LEFT"); Button bottomButton = new Button("BOTTOM"); Button rightButton = new Button("RIGHT");
         String buttonStyle = "-fx-background-color: rgba(255,255,255,0.1); -fx-text-fill: white; -fx-font-size: 10px; -fx-padding: 2 6 2 6;";
         leftButton.setStyle(buttonStyle); bottomButton.setStyle(buttonStyle); rightButton.setStyle(buttonStyle);
         leftButton.setOnAction(e -> setTerminalPosition(TerminalPosition.LEFT)); bottomButton.setOnAction(e -> setTerminalPosition(TerminalPosition.BOTTOM)); rightButton.setOnAction(e -> setTerminalPosition(TerminalPosition.RIGHT));
         HBox layoutControls = new HBox(5, leftButton, bottomButton, rightButton); layoutControls.setAlignment(Pos.CENTER_RIGHT); return layoutControls;
     }
-    private void setTerminalPosition(TerminalPosition position) { /* ... no changes ... */
-        contentPane.setBottom(null); contentPane.setLeft(null); contentPane.setRight(null);
-        switch (position) { case LEFT: terminalPane.setPrefWidth(350); terminalPane.setPrefHeight(-1); terminalOutput.setPrefHeight(Double.MAX_VALUE); contentPane.setLeft(terminalPane); break; case RIGHT: terminalPane.setPrefWidth(350); terminalPane.setPrefHeight(-1); terminalOutput.setPrefHeight(Double.MAX_VALUE); contentPane.setRight(terminalPane); break; case BOTTOM: default: terminalPane.setPrefWidth(-1); terminalPane.setPrefHeight(300); terminalOutput.setPrefHeight(200); contentPane.setBottom(terminalPane); break; }
+    private void setTerminalPosition(TerminalPosition position) {
+        contentPane.setBottom(null);
+        contentPane.setLeft(null);
+        contentPane.setRight(null);
+        switch (position) {
+            case LEFT:
+                terminalPane.setPrefWidth(350);
+                terminalPane.setPrefHeight(-1);
+                contentPane.setLeft(terminalPane);
+                break;
+            case RIGHT:
+                terminalPane.setPrefWidth(350);
+                terminalPane.setPrefHeight(-1);
+                contentPane.setRight(terminalPane);
+                break;
+            case BOTTOM:
+            default:
+                terminalPane.setPrefWidth(-1);
+                terminalPane.setPrefHeight(300);
+                contentPane.setBottom(terminalPane);
+                break;
+        }
     }
     private void setupWindowHandlers(Scene scene, Stage stage) { /* ... no changes ... */ 
         scene.setOnMouseMoved(mouseEvent -> { double x = mouseEvent.getX(); double y = mouseEvent.getY(); double width = stage.getWidth(); double height = stage.getHeight(); boolean onTop = y < RESIZE_BORDER_WIDTH; boolean onBottom = y > height - RESIZE_BORDER_WIDTH; boolean onLeft = x < RESIZE_BORDER_WIDTH; boolean onRight = x > width - RESIZE_BORDER_WIDTH; if (onTop && onLeft) { scene.setCursor(Cursor.NW_RESIZE); resizeMode = 5; } else if (onTop && onRight) { scene.setCursor(Cursor.NE_RESIZE); resizeMode = 6; } else if (onBottom && onLeft) { scene.setCursor(Cursor.SW_RESIZE); resizeMode = 7; } else if (onBottom && onRight) { scene.setCursor(Cursor.SE_RESIZE); resizeMode = 8; } else if (onTop) { scene.setCursor(Cursor.N_RESIZE); resizeMode = 1; } else if (onBottom) { scene.setCursor(Cursor.S_RESIZE); resizeMode = 2; } else if (onRight) { scene.setCursor(Cursor.E_RESIZE); resizeMode = 3; } else if (onLeft) { scene.setCursor(Cursor.W_RESIZE); resizeMode = 4; } else { scene.setCursor(Cursor.DEFAULT); resizeMode = 0; } }); scene.setOnMousePressed(mouseEvent -> { if (resizeMode == 0) { dragDelta.x = stage.getX() - mouseEvent.getScreenX(); dragDelta.y = stage.getY() - mouseEvent.getScreenY(); } else { initialX = mouseEvent.getScreenX(); initialY = mouseEvent.getScreenY(); initialWidth = stage.getWidth(); initialHeight = stage.getHeight(); } }); scene.setOnMouseDragged(mouseEvent -> { if (resizeMode != 0) { double newWidth = initialWidth, newHeight = initialHeight, newX = stage.getX(), newY = stage.getY(); if (resizeMode == 3 || resizeMode == 6 || resizeMode == 8) newWidth = initialWidth + (mouseEvent.getScreenX() - initialX); if (resizeMode == 4 || resizeMode == 5 || resizeMode == 7) { newWidth = initialWidth - (mouseEvent.getScreenX() - initialX); newX = initialX + (mouseEvent.getScreenX() - initialX); } if (resizeMode == 2 || resizeMode == 7 || resizeMode == 8) newHeight = initialHeight + (mouseEvent.getScreenY() - initialY); if (resizeMode == 1 || resizeMode == 5 || resizeMode == 6) { newHeight = initialHeight - (mouseEvent.getScreenY() - initialY); newY = initialY + (mouseEvent.getScreenY() - initialY); } if (newWidth >= MIN_WIDTH) { stage.setWidth(newWidth); if (resizeMode == 4 || resizeMode == 5 || resizeMode == 7) stage.setX(newX); } if (newHeight >= MIN_HEIGHT) { stage.setHeight(newHeight); if (resizeMode == 1 || resizeMode == 5 || resizeMode == 6) stage.setY(newY); } } else { stage.setX(mouseEvent.getScreenX() + dragDelta.x); stage.setY(mouseEvent.getScreenY() + dragDelta.y); } });
