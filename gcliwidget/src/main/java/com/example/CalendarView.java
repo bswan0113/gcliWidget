@@ -79,6 +79,8 @@ public class CalendarView extends BorderPane {
         for (int i = 0; i < 6; i++) {
             RowConstraints rowConst = new RowConstraints();
             rowConst.setVgrow(Priority.ALWAYS);
+            rowConst.setMinHeight(100); // Double the height
+            rowConst.setPrefHeight(100); // Double the height
             calendarGrid.getRowConstraints().add(rowConst);
         }
     }
@@ -126,8 +128,9 @@ public class CalendarView extends BorderPane {
         TextArea notesArea = new TextArea();
         notesArea.setEditable(false);
         notesArea.setWrapText(true);
-        notesArea.setVisible(false);
-        notesArea.setManaged(false);
+        notesArea.setVisible(true); // Always visible
+        notesArea.setManaged(true); // Always managed
+        notesArea.setPrefRowCount(3); // Set preferred row count to limit height
         notesArea.setStyle("-fx-control-inner-background: rgba(0,0,0,0.4); -fx-text-fill: white; -fx-font-family: 'Segoe UI';");
 
         List<Event> events = dataManager.getEventsForDate(date);
@@ -148,24 +151,7 @@ public class CalendarView extends BorderPane {
             cellBox.setStyle("-fx-background-color: rgba(173, 216, 230, 0.2); -fx-background-radius: 8; -fx-border-color: #add8e6; -fx-border-radius: 8;");
         }
 
-        cellBox.addEventHandler(MouseEvent.MOUSE_CLICKED, event -> {
-            if (currentlyOpenCell != null && currentlyOpenCell != cellBox) {
-                TextArea previouslyOpenNotes = (TextArea) currentlyOpenCell.getChildren().get(1);
-                previouslyOpenNotes.setManaged(false);
-                previouslyOpenNotes.setVisible(false);
-            }
-
-            if (notesArea.isManaged()) {
-                notesArea.setManaged(false);
-                notesArea.setVisible(false);
-                currentlyOpenCell = null;
-            } else {
-                notesArea.setManaged(true);
-                notesArea.setVisible(true);
-                currentlyOpenCell = cellBox;
-            }
-            event.consume();
-        });
+        // Removed click event handler as notesArea is always visible
         cellBox.setUserData(date);
 
         return cellBox;
