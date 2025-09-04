@@ -113,4 +113,7 @@ public class CalendarDataManager {
     private Optional<Map.Entry<LocalDate, Event>> findDateAndEvent(String eventId) { /* ... no changes ... */
         return eventsData.entrySet().stream().flatMap(entry -> entry.getValue().stream().filter(event -> eventId.equals(event.getId())).map(event -> Map.entry(entry.getKey(), event))).findFirst();
     }
+     public Map<LocalDate, List<Event>> getAllEvents() {
+        return this.eventsData;
+    }
 }

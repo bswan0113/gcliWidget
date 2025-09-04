@@ -117,6 +117,12 @@ public class App extends Application {
         stage.setScene(scene);
         stage.setTitle("gcliwidget - Calendar & Terminal");
         stage.show();
+        NotificationService.getInstance().start();
+    }
+    @Override
+    public void stop() throws Exception {
+        NotificationService.getInstance().stop();
+        super.stop();
     }
     
     // ... setup/helper 메서드 (createLayoutButtons, setTerminalPosition, setupWindowHandlers, ...) 수정 없음 ...
@@ -144,7 +150,15 @@ public class App extends Application {
         geminiService = new GeminiService(apiKey); commandInput.setDisable(false); commandInput.setPromptText("Enter command and press Enter..."); terminalOutput.appendText("Gemini service is ready.\n");
     }
     private void executeCommand(String command) { /* ... no changes ... */ 
-        Set<String> shellCommands = new HashSet<>(Arrays.asList("dir", "ls", "echo", "ping", "whoami", "cls", "clear")); String[] parts = command.split("\\s+", 2); String baseCommand = parts[0].toLowerCase(); if (baseCommand.equals("cls") || baseCommand.equals("clear")) { terminalOutput.clear(); } else if (shellCommands.contains(baseCommand)) { executeShellCommand(command); } else if ("setkey".equalsIgnoreCase(baseCommand)) { Platform.runLater(this::showApiKeyDialog); } else { if (geminiService == null) { Platform.runLater(() -> terminalOutput.appendText("Error: Gemini API key is not set. Use 'setkey' command.\n")); return; } callGeminiApi(command); }
+        Set<String> shellCommands = new HashSet<>(Arrays.asList("dir", "ls", "echo", "ping", "whoami", "cls", "clear")); String[] parts = command.split("\\s+", 2); String baseCommand = parts[0].toLowerCase(); 
+        if ("testnotify".equalsIgnoreCase(baseCommand)) {
+            terminalOutput.appendText("Sending a test notification now...\n");
+            // 테스트를 위한 가짜 이벤트 객체 생성
+            Event testEvent = new Event("This is a Test Notification!", "Now");
+            // NotificationService의 메서드를 직접 호출
+            NotificationService.getInstance().showNotification(testEvent, 0);
+        } 
+        if (baseCommand.equals("cls") || baseCommand.equals("clear")) { terminalOutput.clear(); } else if (shellCommands.contains(baseCommand)) { executeShellCommand(command); } else if ("setkey".equalsIgnoreCase(baseCommand)) { Platform.runLater(this::showApiKeyDialog); } else { if (geminiService == null) { Platform.runLater(() -> terminalOutput.appendText("Error: Gemini API key is not set. Use 'setkey' command.\n")); return; } callGeminiApi(command); }
     }
     private void executeShellCommand(String command) { /* ... no changes ... */ 
         new Thread(() -> { try { ProcessBuilder processBuilder; if (System.getProperty("os.name").toLowerCase().contains("win")) { processBuilder = new ProcessBuilder("cmd.exe", "/c", "chcp 65001 > nul && " + command); } else { processBuilder = new ProcessBuilder("bash", "-c", command); } Process process = processBuilder.start(); appendStreamToTerminal(new BufferedReader(new InputStreamReader(process.getInputStream(), StandardCharsets.UTF_8)), ""); appendStreamToTerminal(new BufferedReader(new InputStreamReader(process.getErrorStream(), StandardCharsets.UTF_8)), "ERROR: "); int exitCode = process.waitFor(); Platform.runLater(() -> terminalOutput.appendText("\nProcess finished with exit code: " + exitCode + "\n")); } catch (Exception e) { Platform.runLater(() -> terminalOutput.appendText("Exception: " + e.getMessage() + "\n")); } }).start();
