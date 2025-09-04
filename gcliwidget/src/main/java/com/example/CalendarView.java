@@ -22,6 +22,7 @@ import java.time.LocalDate;
 import java.time.YearMonth;
 import java.time.format.DateTimeFormatter;
 import java.time.format.TextStyle;
+import java.util.List;
 import java.util.Locale;
 
 public class CalendarView extends BorderPane {
@@ -33,7 +34,7 @@ public class CalendarView extends BorderPane {
     private final CalendarDataManager dataManager;
 
     public CalendarView() {
-        this.dataManager = new CalendarDataManager();
+        this.dataManager = CalendarDataManager.getInstance();
         this.currentYearMonth = YearMonth.now();
         this.setStyle("-fx-background-color: transparent;");
 
@@ -123,19 +124,23 @@ public class CalendarView extends BorderPane {
         dayLabel.setTextFill(Color.WHITE);
 
         TextArea notesArea = new TextArea();
-        notesArea.setPromptText("Add note...");
+        notesArea.setEditable(false);
+        notesArea.setWrapText(true);
         notesArea.setVisible(false);
         notesArea.setManaged(false);
         notesArea.setStyle("-fx-control-inner-background: rgba(0,0,0,0.4); -fx-text-fill: white; -fx-font-family: 'Segoe UI';");
-        notesArea.setText(dataManager.getNoteForDate(date));
-        notesArea.maxWidthProperty().bind(cellBox.widthProperty().divide(2));
 
-        // Save note when focus is lost
-        notesArea.focusedProperty().addListener((obs, oldVal, newVal) -> {
-            if (!newVal) { // Lost focus
-                dataManager.setNoteForDate(date, notesArea.getText());
+        List<Event> events = dataManager.getEventsForDate(date);
+        if (!events.isEmpty()) {
+            StringBuilder notesText = new StringBuilder();
+            for (Event event : events) {
+                notesText.append(event.toString()).append("\n");
             }
-        });
+            notesArea.setText(notesText.toString());
+        } else {
+            notesArea.setPromptText("No events");
+        }
+
 
         cellBox.getChildren().addAll(dayLabel, notesArea);
 
@@ -146,7 +151,6 @@ public class CalendarView extends BorderPane {
         cellBox.addEventHandler(MouseEvent.MOUSE_CLICKED, event -> {
             if (currentlyOpenCell != null && currentlyOpenCell != cellBox) {
                 TextArea previouslyOpenNotes = (TextArea) currentlyOpenCell.getChildren().get(1);
-                dataManager.setNoteForDate((LocalDate) currentlyOpenCell.getUserData(), previouslyOpenNotes.getText());
                 previouslyOpenNotes.setManaged(false);
                 previouslyOpenNotes.setVisible(false);
             }
@@ -169,6 +173,10 @@ public class CalendarView extends BorderPane {
 
     private void changeMonth(int amount) {
         currentYearMonth = currentYearMonth.plusMonths(amount);
+        drawCalendar();
+    }
+
+    public void redraw() {
         drawCalendar();
     }
 }

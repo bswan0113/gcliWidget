@@ -36,7 +36,7 @@
         "@modelcontextprotocol/server-filesystem",
         "C:/Workspace/Downloads"
       ]
-    },
+    }
     // "github": {
     //   "type": "http",
     //   "url": "https://api.githubcopilot.com/mcp/",
@@ -51,7 +51,7 @@
     //     "SUPABASE_ACCESS_TOKEN": "sbp_7e6c57159a1c9aec0fe64a0c701c0ddfb1c7cd1e"
     //   }
     // }
-  },
+  // },
   // "inputs": [
   //   {
   //     "type": "promptString",
@@ -65,5 +65,6 @@
     //   "description": "Supabase personal access token",
     //   "password": true
     // }
-  ]
+  // ]
+  }
 }

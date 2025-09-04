@@ -1,28 +1,30 @@
 package com.example;
 
-import java.io.FileReader;
-import java.io.FileWriter;
-import java.io.IOException;
-import java.lang.reflect.Type;
-import java.time.LocalDate;
-import java.time.format.DateTimeFormatter;
-import java.util.HashMap;
-import java.util.Map;
-
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonDeserializer;
 import com.google.gson.JsonSerializer;
 import com.google.gson.reflect.TypeToken;
 
+import java.io.FileReader;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.lang.reflect.Type;
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
 public class CalendarDataManager {
 
     private static final String NOTES_FILE = "calendar_notes.json";
-    private Map<LocalDate, String> notesData;
+    private static CalendarDataManager instance;
+    private Map<LocalDate, List<Event>> notesData;
     private final Gson gson;
 
-    public CalendarDataManager() {
-        // LocalDate를 처리하는 JsonSerializer와 JsonDeserializer를 등록하여 GsonBuilder를 구성합니다.
+    private CalendarDataManager() {
         this.gson = new GsonBuilder()
                 .setPrettyPrinting()
                 .registerTypeAdapter(LocalDate.class, (JsonSerializer<LocalDate>) (localDate, type, jsonSerializationContext) ->
@@ -34,27 +36,28 @@ public class CalendarDataManager {
         this.notesData = loadNotes();
     }
 
-    public Map<LocalDate, String> getNotes() {
-        return notesData;
-    }
-
-    public String getNoteForDate(LocalDate date) {
-        return notesData.getOrDefault(date, "");
-    }
-
-    public void setNoteForDate(LocalDate date, String note) {
-        if (note == null || note.isBlank()) {
-            notesData.remove(date);
-        } else {
-            notesData.put(date, note);
+    public static synchronized CalendarDataManager getInstance() {
+        if (instance == null) {
+            instance = new CalendarDataManager();
         }
+        return instance;
+    }
+
+    public List<Event> getEventsForDate(LocalDate date) {
+        return notesData.getOrDefault(date, new ArrayList<>());
+    }
+
+    public void addEventForDate(LocalDate date, Event event) {
+        List<Event> events = notesData.getOrDefault(date, new ArrayList<>());
+        events.add(event);
+        notesData.put(date, events);
         saveNotes();
     }
 
-    private Map<LocalDate, String> loadNotes() {
+    private Map<LocalDate, List<Event>> loadNotes() {
         try (FileReader reader = new FileReader(NOTES_FILE)) {
-            Type type = new TypeToken<HashMap<LocalDate, String>>() {}.getType();
-            Map<LocalDate, String> loadedNotes = gson.fromJson(reader, type);
+            Type type = new TypeToken<HashMap<LocalDate, List<Event>>>() {}.getType();
+            Map<LocalDate, List<Event>> loadedNotes = gson.fromJson(reader, type);
             return loadedNotes != null ? loadedNotes : new HashMap<>();
         } catch (IOException e) {
             System.err.println("Note file not found or could not be read. Starting with an empty map.");
@@ -64,11 +67,13 @@ public class CalendarDataManager {
 
     private void saveNotes() {
         try (FileWriter writer = new FileWriter(NOTES_FILE)) {
+            System.out.println("Saving notes...");
+            System.out.println("Notes data: " + gson.toJson(notesData));
             gson.toJson(notesData, writer);
+            System.out.println("Notes saved successfully.");
         } catch (IOException e) {
             System.err.println("Failed to save notes to file: " + NOTES_FILE);
             e.printStackTrace();
-            // 실제 애플리케이션에서는 이 시점에서 사용자에게 알림을 제공하거나 로그를 기록해야 합니다.
         }
     }
 }
