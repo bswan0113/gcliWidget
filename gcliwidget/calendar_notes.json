@@ -1,22 +1,44 @@
 {
   "2025-09-06": [
     {
-      "title": "데이트",
-      "time": "14:00"
+      "id": "af870147-e4e8-45d0-874d-dc2b46d9b31d",
+      "title": "운동갈예정",
+      "time": "17:00",
+      "completed": false
+    },
+    {
+      "id": "674fdfe5-fbf0-4cf6-8793-1fb36b69cee6",
+      "title": "업마랑 밥먹을 예정",
+      "time": "18:00",
+      "completed": false
+    }
+  ],
+  "2025-09-05": [
+    {
+      "id": "9c337a9d-4a39-4cf9-a278-6701e6b64648",
+      "title": "운동갈예정",
+      "time": "17:00",
+      "completed": true
+    },
+    {
+      "id": "a9035e55-5e1e-4b5a-8fb8-f48d8560c27c",
+      "title": "업마랑 밥먹을 예정",
+      "time": "18:00",
+      "completed": true
     }
   ],
   "2025-09-04": [
     {
-      "title": "운동",
-      "time": "14:00"
+      "id": "7dcaf0d6-fc4e-4f18-a991-f8f5f8f302e8",
+      "title": "운동갈예정",
+      "time": "17:00",
+      "completed": true
     },
     {
-      "title": "운동",
-      "time": "16:33"
-    },
-    {
-      "title": "민지랑 데이트",
-      "time": "13:35"
+      "id": "8c961621-2e58-4963-a040-9a11eae16365",
+      "title": "업마랑 밥먹을 예정",
+      "time": "18:00",
+      "completed": true
     }
   ]
 }

@@ -1,8 +1,5 @@
 com\example\Event.class
-com\example\CalendarView.class
 com\example\ApiKeyManager.class
-com\example\App$Delta.class
 com\example\CalendarDataManager.class
-com\example\App.class
 com\example\CalendarDataManager$1.class
 com\example\GeminiService.class
