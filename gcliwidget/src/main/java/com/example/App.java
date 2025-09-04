@@ -61,7 +61,7 @@ public class App extends Application {
 
     @Override
     public void start(final Stage stage) {
-        stage.initStyle(StageStyle.TRANSPARENT);
+        // stage.initStyle(StageStyle.TRANSPARENT);
 
         contentPane = new BorderPane();
         contentPane.setStyle("-fx-background-color: rgba(0, 0, 0, 0.5); -fx-background-radius: 10;");
@@ -117,11 +117,11 @@ public class App extends Application {
         stage.setScene(scene);
         stage.setTitle("gcliwidget - Calendar & Terminal");
         stage.show();
-        NotificationService.getInstance().start();
+        // NotificationService.getInstance().start();
     }
     @Override
     public void stop() throws Exception {
-        NotificationService.getInstance().stop();
+        // NotificationService.getInstance().stop();
         super.stop();
     }
     
@@ -291,6 +291,25 @@ public class App extends Application {
     }
 
     public static void main(String[] args) {
+           try {
+        String logPath = System.getProperty("user.home") + java.io.File.separator + ".gcliwidget_log.txt";
+        java.io.PrintStream fileOut = new java.io.PrintStream(logPath, java.nio.charset.StandardCharsets.UTF_8);
+        System.setOut(fileOut);
+        System.setErr(fileOut);
+
+        // JavaFX 스레드에서 발생하는 에러를 잡는 핸들러 설정
+        Thread.setDefaultUncaughtExceptionHandler((thread, throwable) -> {
+            System.err.println("Uncaught exception in thread: " + thread.getName());
+            throwable.printStackTrace(System.err);
+        });
+        
+        System.out.println("---- gcliwidget Log Start: " + java.time.LocalDateTime.now() + " ----");
+        System.out.println("Logger initialized successfully.");
+
+    } catch (Exception e) {
+        // 이 부분은 로그 파일 생성 자체에 실패했을 때만 실행됩니다.
+        e.printStackTrace();
+    }
         launch(args);
     }
 }

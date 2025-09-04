@@ -107,7 +107,7 @@ private void checkAndNotify() {
     // ---▼▼▼ [핵심 수정] private -> public 으로 변경 ▼▼▼---
     // In NotificationService.java
 
-private void showNotification(Event event, long minutesUntil) {
+public void showNotification(Event event, long minutesUntil) {
     if (SystemTray.isSupported()) {
         try {
             SystemTray tray = SystemTray.getSystemTray();
@@ -163,4 +163,5 @@ private void showNotification(Event event, long minutesUntil) {
     } else {
         System.err.println("System tray not supported!");
     }
+}
 }

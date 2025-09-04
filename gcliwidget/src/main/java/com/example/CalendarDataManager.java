@@ -1,5 +1,6 @@
 package com.example;
 
+import java.io.File;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
@@ -24,7 +25,7 @@ import com.google.gson.reflect.TypeToken;
 
 public class CalendarDataManager {
 
-    private static final String NOTES_FILE = "calendar_notes.json";
+    private static final String NOTES_FILE = System.getProperty("user.home") + File.separator + ".gcliwidget_calendar_notes.json";
     private static CalendarDataManager instance;
     private Map<LocalDate, List<Event>> eventsData;
     private final Gson gson;
