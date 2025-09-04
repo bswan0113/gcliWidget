@@ -29,10 +29,14 @@ public class GeminiService {
 
         String currentDate = LocalDate.now().format(DateTimeFormatter.ISO_LOCAL_DATE);
         
-        // ---▼▼▼ [핵심 수정] 프롬프트 전체 개편 ▼▼▼---
         String systemPrompt = "You are a powerful calendar assistant. Your response MUST be a single JSON object. "
                 + "The root of the object must contain one key: 'actions', which is an array of action objects. "
                 + "The current date is " + currentDate + ".\n"
+
+                + "## **Title Refinement Rule** ##\n"
+                + "When creating a title for an 'add_events' action, you MUST refine the user's informal language into a concise and formal title. "
+                + "Extract the core activity. Remove unnecessary verbs like '...will go', '...plan to', '...going to'. "
+                + "Use respectful language (e.g., 'Mom' -> 'Mother').\n"
 
                 + "ACTIONS FORMAT:\n"
                 + "1. Add Events: {\"action\": \"add_events\", \"events\": [{\"title\": \"...\", \"date\": \"...\", \"time\": \"...\"}, ...]}\n"
@@ -41,21 +45,20 @@ public class GeminiService {
                 + "4. Copy Events: {\"action\": \"copy_events\", \"source_date\": \"...\", \"destination_date\": \"...\"}\n"
                 + "\n"
 
-                + "EXAMPLES:\n"
+                + "EXAMPLES (Pay close attention to title refinement):\n"
                 + "User: 내일 오후 3시에 팀 미팅 추가해줘\n"
                 + "Assistant: {\"actions\": [{\"action\": \"add_events\", \"events\": [{\"title\": \"팀 미팅\", \"date\": \"" + LocalDate.now().plusDays(1).format(DateTimeFormatter.ISO_LOCAL_DATE) + "\", \"time\": \"15:00\"}]}]}\n"
-                + "User: 17시에 운동, 18시에 저녁 약속\n"
-                + "Assistant: {\"actions\": [{\"action\": \"add_events\", \"events\": [{\"title\": \"운동\", \"date\": \"" + currentDate + "\", \"time\": \"17:00\"}, {\"title\": \"저녁 약속\", \"date\": \"" + currentDate + "\", \"time\": \"18:00\"}]}]}\n"
-                + "User: 오늘 일정 전부 다 했어\n"
-                + "Assistant: {\"actions\": [{\"action\": \"complete_events\", \"events\": [{\"title\": \"all\", \"date\": \"" + currentDate + "\"}]}]}\n"
-                + "User: 내일 미팅 취소해줘\n"
-                + "Assistant: {\"actions\": [{\"action\": \"delete_events\", \"events\": [{\"title\": \"미팅\", \"date\": \"" + LocalDate.now().plusDays(1).format(DateTimeFormatter.ISO_LOCAL_DATE) + "\"}]}]}\n"
+                + "User: 오늘 18시에 운동 갈 예정\n"
+                + "Assistant: {\"actions\": [{\"action\": \"add_events\", \"events\": [{\"title\": \"운동\", \"date\": \"" + currentDate + "\", \"time\": \"18:00\"}]}]}\n"
+                + "User: 19시에 엄마랑 밥먹기로 함\n"
+                + "Assistant: {\"actions\": [{\"action\": \"add_events\", \"events\": [{\"title\": \"어머니와 식사\", \"date\": \"" + currentDate + "\", \"time\": \"19:00\"}]}]}\n"
+                + "User: 17시에 운동하고 19시에 친구랑 저녁약속\n"
+                + "Assistant: {\"actions\": [{\"action\": \"add_events\", \"events\": [{\"title\": \"운동\", \"date\": \"" + currentDate + "\", \"time\": \"17:00\"}, {\"title\": \"친구와 저녁 약속\", \"date\": \"" + currentDate + "\", \"time\": \"19:00\"}]}]}\n"
                 + "User: 오늘 일정을 다음주 오늘로 복사해줘\n"
                 + "Assistant: {\"actions\": [{\"action\": \"copy_events\", \"source_date\": \"" + currentDate + "\", \"destination_date\": \"" + LocalDate.now().plusWeeks(1).format(DateTimeFormatter.ISO_LOCAL_DATE) + "\"}]}\n"
                 + "\n"
 
                 + "Process the user's request: " + prompt;
-        // ---▲▲▲ [핵심 수정] ▲▲▲---
 
         JsonObject part = new JsonObject();
         part.addProperty("text", systemPrompt);
@@ -107,7 +110,6 @@ public class GeminiService {
                 return "{\"error\": \"Unexpected response format from Gemini API.\"}";
             }
         } catch (Exception e) {
-            // Gemini가 유효하지 않은 JSON을 반환할 때를 대비해 에러를 JSON 형식으로 감싸서 반환
             return "{\"error\": \"Failed to parse response from Gemini API.\", \"original_response\": \"" + responseBody.replace("\"", "\\\"") + "\"}";
         }
     }

@@ -5,6 +5,7 @@ import java.time.LocalDate;
 import java.time.YearMonth;
 import java.time.format.DateTimeFormatter;
 import java.time.format.TextStyle;
+import java.util.List;
 import java.util.Locale;
 import java.util.Optional;
 
@@ -122,69 +123,151 @@ public class CalendarView extends VBox {
         cellBox.getChildren().addAll(dayLabel, scrollPane);
         VBox.setVgrow(scrollPane, Priority.ALWAYS);
         
-        // Populate events using the new createEventNode method
-        dataManager.getEventsForDate(date).forEach(event -> {
+        List<Event> events = dataManager.getEventsForDate(date);
+        events.forEach(event -> {
             HBox eventNode = createEventNode(event, date);
             eventsContainer.getChildren().add(eventNode);
         });
         
+        // 날짜 셀 자체에 대한 컨텍스트 메뉴 설정
+        ContextMenu dayCellContextMenu = new ContextMenu();
+        
+        MenuItem addNewItem = new MenuItem("Add New Event");
+        addNewItem.setOnAction(e -> showAddEventDialog(date));
+        
+        MenuItem deleteAllItem = new MenuItem("Delete All Events");
+        if (events.isEmpty()) {
+            deleteAllItem.setDisable(true);
+        } else {
+            deleteAllItem.setOnAction(e -> {
+                Alert alert = new Alert(Alert.AlertType.CONFIRMATION);
+                alert.initOwner(this.getScene().getWindow());
+                alert.setTitle("Confirm Deletion");
+                alert.setHeaderText("Delete all events on " + date.format(DateTimeFormatter.ofPattern("MMM dd")));
+                alert.setContentText("Are you sure? This action cannot be undone.");
+                
+                Optional<ButtonType> result = alert.showAndWait();
+                if (result.isPresent() && result.get() == ButtonType.OK) {
+                    dataManager.deleteAllEventsForDate(date);
+                    redraw();
+                }
+            });
+        }
+        dayCellContextMenu.getItems().addAll(addNewItem, new SeparatorMenuItem(), deleteAllItem);
+
+        // 이벤트가 없는 빈 공간에서 우클릭했을 때 dayCellContextMenu를 보여줌
+        cellBox.setOnContextMenuRequested(event -> {
+            // 이벤트 버블링 방지: 하위 요소(개별 이벤트)가 아닌 날짜 셀의 빈 공간에서 발생했을 때만 메뉴를 표시
+            if (event.getTarget() == cellBox || event.getTarget() == scrollPane || event.getTarget() == eventsContainer) {
+                 dayCellContextMenu.show(cellBox, event.getScreenX(), event.getScreenY());
+            }
+        });
+
         setupDragAndDropTarget(cellBox, date);
 
         return cellBox;
     }
     
-private HBox createEventNode(Event event, LocalDate date) {
-    HBox eventBox = new HBox(5);
-    eventBox.setAlignment(Pos.CENTER_LEFT);
-    
-    CheckBox checkBox = new CheckBox();
-    checkBox.setSelected(event.isCompleted());
-    
-    Label eventLabel = new Label(event.toString());
-    eventLabel.setWrapText(true);
-    eventLabel.setTextFill(Color.WHITE);
-    eventLabel.setMaxWidth(Double.MAX_VALUE);
-    HBox.setHgrow(eventLabel, Priority.ALWAYS);
+    // 이 메서드는 `createDayCell`에서 사용됨
+    private void showAddEventDialog(LocalDate date) {
+        Dialog<Event> dialog = new Dialog<>();
+        dialog.initStyle(StageStyle.UTILITY);
+        dialog.setTitle("Add New Event");
+        dialog.setHeaderText("Add a new event for " + date.format(DateTimeFormatter.ofPattern("yyyy-MM-dd")));
+        dialog.initOwner(this.getScene().getWindow());
 
-    eventBox.getChildren().addAll(checkBox, eventLabel);
-    
-    updateEventNodeStyle(eventBox, event.isCompleted());
-    
-    checkBox.selectedProperty().addListener((obs, wasSelected, isSelected) -> {
-        event.setCompleted(isSelected);
-        dataManager.updateEvent(date, event);
-        updateEventNodeStyle(eventBox, isSelected);
-    });
-    
-    eventBox.setUserData(event);
-    
-    eventLabel.setOnMouseClicked(mouseEvent -> {
-        if (mouseEvent.getButton() == MouseButton.PRIMARY && mouseEvent.getClickCount() == 2) {
-            inlineEdit(eventBox, event, date);
-        }
-    });
-    
-    ContextMenu contextMenu = new ContextMenu();
-    MenuItem editItem = new MenuItem("Edit Details");
-    editItem.setOnAction(e -> showEditEventDialog(event, date));
-    MenuItem deleteItem = new MenuItem("Delete");
-    deleteItem.setOnAction(e -> deleteEvent(event, date));
-    contextMenu.getItems().addAll(editItem, new SeparatorMenuItem(), deleteItem);
-    
-    // HBox에는 setContextMenu가 없으므로 setOnContextMenuRequested 이벤트를 사용합니다.
-    eventBox.setOnContextMenuRequested(event_ -> 
-        contextMenu.show(eventBox, event_.getScreenX(), event_.getScreenY())
-    );
-    setupDragAndDropSource(eventBox, event);
-    
-    return eventBox;
-}
+        GridPane grid = new GridPane();
+        grid.setHgap(10);
+        grid.setVgap(10);
+        grid.setPadding(new Insets(20, 150, 10, 10));
+
+        TextField titleField = new TextField();
+        titleField.setPromptText("Event title");
+        TextField timeField = new TextField();
+        timeField.setPromptText("HH:MM (optional)");
+        
+        grid.add(new Label("Title:"), 0, 0);
+        grid.add(titleField, 1, 0);
+        grid.add(new Label("Time:"), 0, 1);
+        grid.add(timeField, 1, 1);
+
+        dialog.getDialogPane().setContent(grid);
+        
+        ButtonType addButtonType = new ButtonType("Add", ButtonBar.ButtonData.OK_DONE);
+        dialog.getDialogPane().getButtonTypes().addAll(addButtonType, ButtonType.CANCEL);
+        
+        dialog.getDialogPane().lookupButton(addButtonType).setDisable(true);
+        titleField.textProperty().addListener((observable, oldValue, newValue) -> {
+            dialog.getDialogPane().lookupButton(addButtonType).setDisable(newValue.trim().isEmpty());
+        });
+
+        dialog.setResultConverter(dialogButton -> {
+            if (dialogButton == addButtonType) {
+                return new Event(titleField.getText(), timeField.getText());
+            }
+            return null;
+        });
+
+        Optional<Event> result = dialog.showAndWait();
+        result.ifPresent(newEvent -> {
+            dataManager.addEventForDate(date, newEvent);
+            redraw();
+        });
+    }
+
+    private HBox createEventNode(Event event, LocalDate date) {
+        HBox eventBox = new HBox(5);
+        eventBox.setAlignment(Pos.CENTER_LEFT);
+        
+        CheckBox checkBox = new CheckBox();
+        checkBox.setSelected(event.isCompleted());
+        
+        Label eventLabel = new Label(event.toString());
+        eventLabel.setWrapText(true);
+        eventLabel.setTextFill(Color.WHITE);
+        eventLabel.setMaxWidth(Double.MAX_VALUE);
+        HBox.setHgrow(eventLabel, Priority.ALWAYS);
+
+        eventBox.getChildren().addAll(checkBox, eventLabel);
+        
+        updateEventNodeStyle(eventBox, event.isCompleted());
+        
+        checkBox.selectedProperty().addListener((obs, wasSelected, isSelected) -> {
+            event.setCompleted(isSelected);
+            dataManager.updateEvent(date, event);
+            updateEventNodeStyle(eventBox, isSelected);
+        });
+        
+        eventBox.setUserData(event);
+        
+        eventLabel.setOnMouseClicked(mouseEvent -> {
+            if (mouseEvent.getButton() == MouseButton.PRIMARY && mouseEvent.getClickCount() == 2) {
+                inlineEdit(eventBox, event, date);
+            }
+        });
+        
+        // 개별 이벤트 자체를 위한 컨텍스트 메뉴
+        ContextMenu eventContextMenu = new ContextMenu();
+        MenuItem editItem = new MenuItem("Edit Details");
+        editItem.setOnAction(e -> showEditEventDialog(event, date));
+        MenuItem deleteItem = new MenuItem("Delete");
+        deleteItem.setOnAction(e -> deleteEvent(event, date));
+        eventContextMenu.getItems().addAll(editItem, new SeparatorMenuItem(), deleteItem);
+        
+        eventBox.setOnContextMenuRequested(event_ -> 
+            eventContextMenu.show(eventBox, event_.getScreenX(), event_.getScreenY())
+        );
+
+        setupDragAndDropSource(eventBox, event);
+        
+        return eventBox;
+    }
     
     private void updateEventNodeStyle(HBox eventBox, boolean isCompleted) {
-        Label label = (Label) eventBox.getChildren().get(1); // The label is the second child
+        Label label = (Label) eventBox.getChildren().get(1);
         if (isCompleted) {
             eventBox.setStyle("-fx-background-color: rgba(152, 251, 152, 0.5); -fx-padding: 3 5; -fx-background-radius: 4;");
-            label.setStyle("-fx-strikethrough: true; -fx-text-fill: #556B2F;"); // Dark green text for readability
+            label.setStyle("-fx-strikethrough: true; -fx-text-fill: #556B2F;");
         } else {
             eventBox.setStyle("-fx-background-color: rgba(70, 130, 180, 0.6); -fx-padding: 3 5; -fx-background-radius: 4;");
             label.setStyle("-fx-strikethrough: false; -fx-text-fill: white;");
