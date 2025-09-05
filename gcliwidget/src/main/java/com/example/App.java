@@ -194,9 +194,17 @@ public class App extends Application {
     }
 
 
+  // C:\Workspace\gcliWidget\gcliwidget\src\main\java\com\example\App.java
+
+// ... (다른 App.java 코드는 그대로)
+
     private void callGeminiApi(String prompt) {
         Platform.runLater(() -> terminalOutput.appendText("Generating response...\n"));
-        geminiService.generateContent(prompt).whenComplete((response, error) -> {
+        // ▼▼▼ 여기서 'manager'가 이미 선언되었습니다. ▼▼▼
+        CalendarDataManager manager = CalendarDataManager.getInstance();
+        String scheduleContext = manager.getScheduleAsTextContext();
+        
+        geminiService.generateContent(prompt, scheduleContext).whenComplete((response, error) -> {
             if (error != null) {
                 Platform.runLater(() -> terminalOutput.appendText("Error: " + error.getMessage() + "\n"));
                 return;
@@ -210,7 +218,6 @@ public class App extends Application {
 
                     JsonObject responseObject = gson.fromJson(jsonResponse, JsonObject.class);
 
-                    // ---▼▼▼ [핵심 수정] "actions" 배열을 처리하는 로직으로 변경 ▼▼▼---
                     if (responseObject.has("error")) {
                          terminalOutput.appendText("Error from Gemini: " + responseObject.get("error").getAsString() + "\n");
                          if(responseObject.has("original_response")){
@@ -224,7 +231,8 @@ public class App extends Application {
                     }
 
                     JsonArray actions = responseObject.getAsJsonArray("actions");
-                    CalendarDataManager manager = CalendarDataManager.getInstance();
+                    // ▼▼▼ [수정된 부분] 아래의 중복된 선언을 삭제했습니다. ▼▼▼
+                    // CalendarDataManager manager = CalendarDataManager.getInstance(); 
                     boolean changesMade = false;
 
                     for (JsonElement actionElement : actions) {
@@ -251,19 +259,13 @@ public class App extends Application {
                                     JsonObject eventInfo = eventEl.getAsJsonObject();
                                     String title = eventInfo.get("title").getAsString();
                                     LocalDate date = LocalDate.parse(eventInfo.get("date").getAsString());
-                                    if ("all".equalsIgnoreCase(title)) {
-                                        List<Event> allEvents = manager.getEventsForDate(date);
-                                        for (Event event : allEvents) {
-                                            if (!event.isCompleted()) {
-                                                manager.toggleEventCompletion(date, event.getTitle());
-                                            }
-                                        }
-                                        terminalOutput.appendText("All events on " + date + " marked as complete.\n");
-                                    } else {
-                                        manager.toggleEventCompletion(date, title);
+                                    // 'toggleEventCompletion' 메서드가 성공 여부를 boolean으로 반환하므로, 이를 활용해 더 정확한 피드백을 줄 수 있습니다.
+                                    if (manager.toggleEventCompletion(date, title)) {
                                         terminalOutput.appendText("Event '" + title + "' on " + date + " status toggled.\n");
+                                        changesMade = true;
+                                    } else {
+                                        terminalOutput.appendText("Could not find event '" + title + "' on " + date + " to toggle.\n");
                                     }
-                                    changesMade = true;
                                 }
                                 break;
                             }
@@ -273,14 +275,13 @@ public class App extends Application {
                                     JsonObject eventInfo = eventEl.getAsJsonObject();
                                     String title = eventInfo.get("title").getAsString();
                                     LocalDate date = LocalDate.parse(eventInfo.get("date").getAsString());
-                                    if ("all".equalsIgnoreCase(title)) {
-                                        manager.deleteAllEventsForDate(date);
-                                        terminalOutput.appendText("All events on " + date + " deleted.\n");
-                                    } else {
-                                        manager.deleteEventByTitle(date, title);
+                                    // 'deleteEventByTitle' 메서드도 성공 여부를 boolean으로 반환합니다.
+                                    if (manager.deleteEventByTitle(date, title)) {
                                         terminalOutput.appendText("Event '" + title + "' on " + date + " deleted.\n");
+                                        changesMade = true;
+                                    } else {
+                                        terminalOutput.appendText("Could not find event '" + title + "' on " + date + " to delete.\n");
                                     }
-                                    changesMade = true;
                                 }
                                 break;
                             }
@@ -306,7 +307,6 @@ public class App extends Application {
                     if (changesMade) {
                         calendarView.redraw();
                     }
-                    // ---▲▲▲ [핵심 수정] ▲▲▲---
                     
                 } catch (Exception e) {
                     terminalOutput.appendText("Error processing response: " + e.getMessage() + "\n");
@@ -315,6 +315,7 @@ public class App extends Application {
             });
         });
     }
+
 
     public static void main(String[] args) {
            try {

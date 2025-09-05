@@ -5,6 +5,7 @@ import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.concurrent.CompletableFuture;
 
@@ -24,41 +25,54 @@ public class GeminiService {
         this.gson = new Gson();
     }
 
-    public CompletableFuture<String> generateContent(String prompt) {
+    public CompletableFuture<String> generateContent(String prompt, String scheduleContext) {
         String url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=" + apiKey;
 
-        String currentDate = LocalDate.now().format(DateTimeFormatter.ISO_LOCAL_DATE);
+                LocalDateTime now = LocalDateTime.now();
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm");
+        String currentDate = now.format(formatter);
         
         String systemPrompt = "You are a powerful calendar assistant. Your response MUST be a single JSON object. "
                 + "The root of the object must contain one key: 'actions', which is an array of action objects. "
-                + "The current date is " + currentDate + ".\n"
+                + "The current date is " + currentDate + ".\n\n"
 
-                + "## **Title Refinement Rule** ##\n"
-                + "When creating a title for an 'add_events' action, you MUST refine the user's informal language into a concise and formal title. "
-                + "Extract the core activity. Remove unnecessary verbs like '...will go', '...plan to', '...going to'. "
-                + "Use respectful language (e.g., 'Mom' -> 'Mother').\n"
+                + "## CURRENT SCHEDULE (for context) ##\n"
+                + scheduleContext + "\n\n"
 
-                + "ACTIONS FORMAT:\n"
-                + "1. Add Events: {\"action\": \"add_events\", \"events\": [{\"title\": \"...\", \"date\": \"...\", \"time\": \"...\"}, ...]}\n"
-                + "2. Complete Events: {\"action\": \"complete_events\", \"events\": [{\"title\": \"...\", \"date\": \"...\"}, {\"title\": \"all\", \"date\": \"...\"}]}\n"
-                + "3. Delete Events: {\"action\": \"delete_events\", \"events\": [{\"title\": \"...\", \"date\": \"...\"}, {\"title\": \"all\", \"date\": \"...\"}]}\n"
-                + "4. Copy Events: {\"action\": \"copy_events\", \"source_date\": \"...\", \"destination_date\": \"...\"}\n"
-                + "\n"
+                + "## **Core Rules** ##\n"
+                + "1.  **Event Identification Rule:** When the user asks to 'complete', 'delete', or 'modify' an event, you MUST first look at the `CURRENT SCHEDULE` context. Identify the *exact title* and *date* of the event the user is referring to. Use that exact information to construct the JSON. **DO NOT use the user's descriptive phrase (like '오늘 등록된 식사') as the `title` in the JSON.**\n"
+                + "2.  **Title Refinement Rule:** When 'add_events', refine the user's language into a concise title (e.g., '...밥먹기로 함' -> '식사').\n\n"
 
-                + "EXAMPLES (Pay close attention to title refinement):\n"
-                + "User: 내일 오후 3시에 팀 미팅 추가해줘\n"
-                + "Assistant: {\"actions\": [{\"action\": \"add_events\", \"events\": [{\"title\": \"팀 미팅\", \"date\": \"" + LocalDate.now().plusDays(1).format(DateTimeFormatter.ISO_LOCAL_DATE) + "\", \"time\": \"15:00\"}]}]}\n"
-                + "User: 오늘 18시에 운동 갈 예정\n"
-                + "Assistant: {\"actions\": [{\"action\": \"add_events\", \"events\": [{\"title\": \"운동\", \"date\": \"" + currentDate + "\", \"time\": \"18:00\"}]}]}\n"
-                + "User: 19시에 엄마랑 밥먹기로 함\n"
-                + "Assistant: {\"actions\": [{\"action\": \"add_events\", \"events\": [{\"title\": \"어머니와 식사\", \"date\": \"" + currentDate + "\", \"time\": \"19:00\"}]}]}\n"
-                + "User: 17시에 운동하고 19시에 친구랑 저녁약속\n"
-                + "Assistant: {\"actions\": [{\"action\": \"add_events\", \"events\": [{\"title\": \"운동\", \"date\": \"" + currentDate + "\", \"time\": \"17:00\"}, {\"title\": \"친구와 저녁 약속\", \"date\": \"" + currentDate + "\", \"time\": \"19:00\"}]}]}\n"
-                + "User: 오늘 일정을 다음주 오늘로 복사해줘\n"
-                + "Assistant: {\"actions\": [{\"action\": \"copy_events\", \"source_date\": \"" + currentDate + "\", \"destination_date\": \"" + LocalDate.now().plusWeeks(1).format(DateTimeFormatter.ISO_LOCAL_DATE) + "\"}]}\n"
-                + "\n"
+                + "## ACTIONS FORMAT ##\n"
+                + "1. Add: {\"action\": \"add_events\", \"events\": [{\"title\": \"...\", \"date\": \"...\", \"time\": \"...\"}]}\n"
+                + "2. Complete: {\"action\": \"complete_events\", \"events\": [{\"title\": \"...\", \"date\": \"...\"}]}\n"
+                + "3. Delete: {\"action\": \"delete_events\", \"events\": [{\"title\": \"...\", \"date\": \"...\"}]}\n"
+                + "4. Copy: {\"action\": \"copy_events\", \"source_date\": \"...\", \"destination_date\": \"...\"}\n\n"
 
-                + "Process the user's request: " + prompt;
+                + "## EXAMPLES ##\n"
+                + "Let's assume the CURRENT SCHEDULE is:\n"
+                + "2024-05-22\n"
+                + "- [ ] 팀 미팅 (15:00)\n"
+                + "- [ ] 운동 (18:00)\n"
+                + "2024-05-23\n"
+                + "- [ ] 프로젝트 보고서 제출\n\n"
+                
+                + "User: 오늘 19시에 친구랑 저녁약속\n"
+                + "Assistant: {\"actions\": [{\"action\": \"add_events\", \"events\": [{\"title\": \"친구와 저녁 약속\", \"date\": \"" + currentDate + "\", \"time\": \"19:00\"}]}]}\n\n"
+
+                + "User: 오늘 운동 끝났어 체크해줘\n"
+                + "Assistant: {\"actions\": [{\"action\": \"complete_events\", \"events\": [{\"title\": \"운동\", \"date\": \"" + currentDate + "\"}]}]}\n\n"
+
+                + "User: 오늘 팀 미팅 취소해줘\n"
+                + "Assistant: {\"actions\": [{\"action\": \"delete_events\", \"events\": [{\"title\": \"팀 미팅\", \"date\": \"" + currentDate + "\"}]}]}\n\n"
+
+                + "User: 내일 보고서 제출하는거 삭제해줘\n"
+                + "Assistant: {\"actions\": [{\"action\": \"delete_events\", \"events\": [{\"title\": \"프로젝트 보고서 제출\", \"date\": \"" + LocalDate.now().plusDays(1).format(DateTimeFormatter.ISO_LOCAL_DATE) + "\"}]}]}\n\n"
+
+                + "User: 어제 일정을 내일로 복사해줘\n"
+                + "Assistant: {\"actions\": [{\"action\": \"copy_events\", \"source_date\": \"" + LocalDate.now().minusDays(1).format(DateTimeFormatter.ISO_LOCAL_DATE) + "\", \"destination_date\": \"" + LocalDate.now().plusDays(1).format(DateTimeFormatter.ISO_LOCAL_DATE) + "\"}]}\n\n"
+
+                + "Process the user's request based on the rules and CURRENT SCHEDULE: " + prompt;
 
         JsonObject part = new JsonObject();
         part.addProperty("text", systemPrompt);

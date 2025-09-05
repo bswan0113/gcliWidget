@@ -117,4 +117,24 @@ public class CalendarDataManager {
      public Map<LocalDate, List<Event>> getAllEvents() {
         return this.eventsData;
     }
+        public String getScheduleAsTextContext() {
+        if (eventsData == null || eventsData.isEmpty()) {
+            return "No scheduled events.";
+        }
+
+        StringBuilder contextBuilder = new StringBuilder();
+        eventsData.keySet().stream().sorted().forEach(date -> {
+            List<Event> events = getEventsForDate(date);
+            if (!events.isEmpty()) {
+                contextBuilder.append(date.format(DateTimeFormatter.ISO_LOCAL_DATE)).append("\n");
+                events.forEach(event -> {
+                    String status = event.isCompleted() ? "[x]" : "[ ]";
+                    String timeInfo = (event.getTime() != null && !event.getTime().isBlank()) ? " (" + event.getTime() + ")" : "";
+                    contextBuilder.append(String.format("- %s %s%s\n", status, event.getTitle(), timeInfo));
+                });
+            }
+        });
+
+        return contextBuilder.toString();
+    }
 }
